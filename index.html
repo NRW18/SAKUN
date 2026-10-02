@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="แปลงรูปและรวมไฟล์เป็น PDF ในเครื่อง ไม่อัปโหลดไฟล์">
-<meta name="theme-color" content="#1f47d6">
+<meta name="theme-color" content="#060a1e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="สลับสกุล">
+<meta name="apple-mobile-web-app-title" content="SAKUN">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>สลับสกุล</title>
+<title>SAKUN</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: app shell. Top bar with mode switch, one working column, action bar pinned to the bottom edge. */
@@ -32,6 +32,8 @@
   --display: "Bai Jamjuree", "IBM Plex Sans Thai", system-ui, sans-serif;
   --body: "IBM Plex Sans Thai", system-ui, -apple-system, "Noto Sans Thai", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --splash-bg: #060a1e;
+  --splash-ink: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -63,9 +65,16 @@ section { min-width: 0; }
   background: var(--bg); padding-block: 14px 12px;
   display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--line);
 }
-.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-h1 { font-family: var(--display); font-size: 1.5rem; line-height: 1.2; margin: 0; }
-h1 .arrow { color: var(--accent); }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+h1 { font-family: var(--display); font-size: 1.45rem; line-height: 1.2; margin: 0; letter-spacing: 0.06em; display: flex; align-items: center; gap: 10px; }
+h1 svg { width: 34px; height: 34px; flex: none; }
+.splash { position: fixed; inset: 0; z-index: 50; background: var(--splash-bg); color: var(--splash-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; transition: opacity 0.35s; }
+.splash svg { width: 128px; height: 128px; margin-bottom: 14px; }
+.splash strong { font-family: var(--display); font-size: 2.2rem; letter-spacing: 0.14em; line-height: 1.1; }
+.splash span { font-size: 0.95rem; opacity: 0.85; }
+.splash em { position: absolute; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); font-style: normal; font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.18em; opacity: 0.7; }
+.splash.out { opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .splash { transition: none; } }
 .net { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
 .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
 .modes button { border: 0; background: none; padding: 9px 6px; border-radius: 9px; font-weight: 600; color: var(--muted); }
@@ -131,6 +140,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); height: 42px; }
 .save.wide { width: 100%; padding: 12px; margin-top: 10px; }
 .hint { font-size: 0.85rem; color: var(--muted); margin: 10px 0 0; }
 
+.credit { margin: 0; text-align: center; font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.08em; color: var(--muted); }
 .bar {
   position: sticky; bottom: 0; z-index: 5; background: var(--bg);
   padding-block: 10px calc(12px + env(safe-area-inset-bottom, 0px));
@@ -150,10 +160,25 @@ input[type="range"] { width: 100%; accent-color: var(--accent); height: 42px; }
 @media (prefers-reduced-motion: reduce) { .prog i { transition: none; } }
 </style>
 
+<div class="splash" id="splash" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" ><defs><linearGradient id="sg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ff6ff"/><stop offset=".5" stop-color="#38b6ff"/><stop offset="1" stop-color="#2a5cff"/></linearGradient><radialGradient id="bg2" cx=".3" cy=".15" r="1.1"><stop offset="0" stop-color="#1a2d70"/><stop offset="1" stop-color="#060a1e"/></radialGradient><filter id="gl2" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+<rect width="100" height="100" rx="22" fill="url(#bg2)"/>
+<g transform="translate(50 50) skewX(-9) translate(-50 -50)" fill="none" stroke-linecap="round">
+<path d="M69 33C69 20 31 19 31 36C31 53 69 47 69 64C69 81 31 80 31 67" stroke="#38b6ff" stroke-width="13" opacity=".6" filter="url(#gl2)"/>
+<path d="M69 33C69 20 31 19 31 36C31 53 69 47 69 64C69 81 31 80 31 67" stroke="url(#sg2)" stroke-width="13"/>
+<path d="M69 33C69 20 31 19 31 36C31 53 69 47 69 64C69 81 31 80 31 67" stroke="#e8fdff" stroke-width="1.6" opacity=".75" transform="translate(-2.2 -2.2)" stroke-dasharray="26 200"/>
+</g></svg><strong>SAKUN</strong><span>แปลงไฟล์ในเครื่อง ไม่อัปโหลด</span><em>by NRW</em></div>
+<script>(function(){var s=document.getElementById("splash");if(window.claude){s.remove();return;}var t=Date.now();function hide(){setTimeout(function(){s.classList.add("out");setTimeout(function(){s.remove();},400);},Math.max(0,700-(Date.now()-t)));}if(document.readyState==="complete")hide();else window.addEventListener("load",hide);setTimeout(hide,2500);})();</script>
+
 <div class="wrap">
   <div class="top">
     <div class="brand">
-      <h1>สลับสกุล <span class="arrow" aria-hidden="true">→</span></h1>
+      <h1><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="sg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ff6ff"/><stop offset=".5" stop-color="#38b6ff"/><stop offset="1" stop-color="#2a5cff"/></linearGradient><radialGradient id="bg1" cx=".3" cy=".15" r="1.1"><stop offset="0" stop-color="#1a2d70"/><stop offset="1" stop-color="#060a1e"/></radialGradient><filter id="gl1" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+<rect width="100" height="100" rx="22" fill="url(#bg1)"/>
+<g transform="translate(50 50) skewX(-9) translate(-50 -50)" fill="none" stroke-linecap="round">
+<path d="M69 33C69 20 31 19 31 36C31 53 69 47 69 64C69 81 31 80 31 67" stroke="#38b6ff" stroke-width="13" opacity=".6" filter="url(#gl1)"/>
+<path d="M69 33C69 20 31 19 31 36C31 53 69 47 69 64C69 81 31 80 31 67" stroke="url(#sg1)" stroke-width="13"/>
+<path d="M69 33C69 20 31 19 31 36C31 53 69 47 69 64C69 81 31 80 31 67" stroke="#e8fdff" stroke-width="1.6" opacity=".75" transform="translate(-2.2 -2.2)" stroke-dasharray="26 200"/>
+</g></svg>SAKUN</h1>
       <span class="net">แปลงในเครื่อง ไม่อัปโหลด</span>
     </div>
     <div class="modes" role="tablist" aria-label="โหมด">
@@ -219,6 +244,8 @@ input[type="range"] { width: 100%; accent-color: var(--accent); height: 42px; }
     <button type="button" class="save wide" id="zip" hidden>บันทึกทั้งหมดเป็น ZIP</button>
     <p class="hint">ถ้าปุ่มบันทึกไม่ทำงาน ให้กดค้างที่รูปแล้วเลือกบันทึกรูปภาพ</p>
   </section>
+
+  <p class="credit">SAKUN · สร้างโดย NRW</p>
 
   <div class="bar">
     <div class="prog" id="prog" hidden><i id="progBar"></i></div>

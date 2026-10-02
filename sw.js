@@ -1,5 +1,5 @@
 // เปลี่ยนเลขเวอร์ชันทุกครั้งที่แก้ไฟล์ เพื่อให้เครื่องผู้ใช้โหลดของใหม่
-const VERSION = "salap-sakun-v1";
+const VERSION = "sakun-v3";
 const CORE = ["./", "index.html", "manifest.webmanifest", "vendor/pdf-lib.min.js", "vendor/jszip.min.js", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {

@@ -1,13 +1,13 @@
 {
-  "name": "สลับสกุล",
-  "short_name": "สลับสกุล",
+  "name": "SAKUN",
+  "short_name": "SAKUN",
   "description": "แปลงรูปและรวมไฟล์เป็น PDF ในเครื่อง",
   "lang": "th",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#e9eef0",
-  "theme_color": "#1f47d6",
+  "background_color": "#060a1e",
+  "theme_color": "#060a1e",
   "icons": [
     {
       "src": "icons/icon-192.png",

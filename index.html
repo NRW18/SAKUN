@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="แปลงรูปและรวมไฟล์เป็น PDF ในเครื่อง ไม่อัปโหลดไฟล์">
+<meta name="theme-color" content="#1f47d6">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="สลับสกุล">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>สลับสกุล</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: app shell. Top bar with mode switch, one working column, action bar pinned to the bottom edge. */
+:root {
+  --bg: #e9eef0;
+  --surface: #f8fafb;
+  --ink: #0f1e24;
+  --muted: #55676f;
+  --line: #c9d4d9;
+  --accent: #1f47d6;
+  --accent-ink: #ffffff;
+  --accent-soft: #dde5fb;
+  --good: #0c7a52;
+  --bad: #b3261e;
+  --display: "Bai Jamjuree", "IBM Plex Sans Thai", system-ui, sans-serif;
+  --body: "IBM Plex Sans Thai", system-ui, -apple-system, "Noto Sans Thai", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1518; --surface: #162126; --ink: #e8eff2; --muted: #93a6ae; --line: #2b3b42;
+    --accent: #7d9bff; --accent-ink: #0b1330; --accent-soft: #1d2a52;
+    --good: #5fd0a2; --bad: #ff8a80; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1518; --surface: #162126; --ink: #e8eff2; --muted: #93a6ae; --line: #2b3b42;
+  --accent: #7d9bff; --accent-ink: #0b1330; --accent-soft: #1d2a52;
+  --good: #5fd0a2; --bad: #ff8a80; color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--body); font-size: 16px; line-height: 1.6;
+  padding-inline: 16px; padding-block: 0;
+}
+.wrap { max-width: 560px; margin-inline: auto; display: flex; flex-direction: column; gap: 22px; }
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+h2 { font-family: var(--display); font-size: 1rem; margin: 0 0 10px; }
+section { min-width: 0; }
+
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--bg); padding-block: 14px 12px;
+  display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 { font-family: var(--display); font-size: 1.5rem; line-height: 1.2; margin: 0; }
+h1 .arrow { color: var(--accent); }
+.net { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.modes button { border: 0; background: none; padding: 9px 6px; border-radius: 9px; font-weight: 600; color: var(--muted); }
+.modes button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+
+.drop {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+  width: 100%; padding: 22px 16px;
+  background: var(--surface); border: 2px dashed var(--line); border-radius: 14px;
+}
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop strong { font-family: var(--display); font-size: 1.1rem; }
+.drop span { color: var(--muted); font-size: 0.88rem; }
+.listhead { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-size: 0.85rem; color: var(--muted); }
+.link { border: 0; background: none; color: var(--accent); font-weight: 600; padding: 6px 2px; }
+
+.list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.row {
+  display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center;
+  padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+}
+.thumb {
+  width: 52px; height: 52px; border-radius: 6px; object-fit: cover; background: var(--bg);
+  display: grid; place-items: center; font-family: var(--mono); font-size: 0.75rem; color: var(--muted);
+}
+.meta { min-width: 0; }
+.name { font-weight: 500; overflow-wrap: anywhere; line-height: 1.35; }
+.sub { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sub .down { color: var(--good); }
+.sub .up { color: var(--bad); }
+.tag {
+  font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; margin-right: 6px;
+}
+.tag.eg { border-color: var(--accent); color: var(--accent); }
+.acts { display: flex; gap: 2px; }
+.ic { width: 38px; height: 40px; border: 0; background: none; color: var(--muted); font-size: 1.15rem; border-radius: 8px; }
+.ic:hover { background: var(--bg); color: var(--ink); }
+.ic:disabled { opacity: 0.3; }
+
+.chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.chips label { position: relative; }
+.chips input { position: absolute; opacity: 0; inset: 0; }
+.chips span {
+  display: flex; flex-direction: column; align-items: center; padding: 10px 4px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  font-family: var(--mono); font-weight: 500;
+}
+.chips small { font-family: var(--body); font-weight: 400; font-size: 0.74rem; color: var(--muted); line-height: 1.3; text-align: center; }
+.chips input:checked + span { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.chips input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.opt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.opt label { font-size: 0.85rem; color: var(--muted); }
+.opt output { font-family: var(--mono); color: var(--ink); }
+select { padding: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; width: 100%; }
+input[type="range"] { width: 100%; accent-color: var(--accent); height: 42px; }
+@media (max-width: 420px) { .opts { grid-template-columns: 1fr; } }
+
+.save { padding: 8px 14px; border-radius: 8px; white-space: nowrap; background: none; border: 1px solid var(--accent); color: var(--accent); font-weight: 600; }
+.save:hover { background: var(--accent-soft); }
+.save.wide { width: 100%; padding: 12px; margin-top: 10px; }
+.hint { font-size: 0.85rem; color: var(--muted); margin: 10px 0 0; }
+
+.bar {
+  position: sticky; bottom: 0; z-index: 5; background: var(--bg);
+  padding-block: 10px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px;
+}
+.go {
+  width: 100%; padding: 14px; border: 0; border-radius: 12px;
+  background: var(--accent); color: var(--accent-ink);
+  font-family: var(--display); font-size: 1.1rem; font-weight: 700;
+}
+.go:disabled { opacity: 0.45; }
+.msg { margin: 0; font-size: 0.88rem; min-height: 1.4em; text-align: center; color: var(--muted); }
+.msg.err { color: var(--bad); }
+.msg.ok { color: var(--good); }
+.prog { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.prog i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.15s; }
+@media (prefers-reduced-motion: reduce) { .prog i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <h1>สลับสกุล <span class="arrow" aria-hidden="true">→</span></h1>
+      <span class="net">แปลงในเครื่อง ไม่อัปโหลด</span>
+    </div>
+    <div class="modes" role="tablist" aria-label="โหมด">
+      <button type="button" role="tab" id="m-img" aria-selected="true">แปลงรูป</button>
+      <button type="button" role="tab" id="m-pdf" aria-selected="false">รวมเป็น PDF</button>
+    </div>
+  </div>
+
+  <section aria-labelledby="h-in">
+    <h2 id="h-in">ไฟล์ต้นทาง</h2>
+    <button type="button" class="drop" id="drop">
+      <strong id="dropTitle">เลือกรูป</strong>
+      <span id="dropSub">เลือกได้หลายไฟล์พร้อมกัน หรือลากมาวางตรงนี้</span>
+    </button>
+    <input type="file" id="picker" accept="image/*" multiple hidden>
+    <div class="listhead" id="listHead" hidden>
+      <span id="count"></span>
+      <button type="button" class="link" id="clear">ล้างทั้งหมด</button>
+    </div>
+    <ul class="list" id="inList"></ul>
+  </section>
+
+  <section aria-labelledby="h-to" id="imgOpts">
+    <h2 id="h-to">แปลงเป็น</h2>
+    <div class="chips" role="radiogroup" aria-labelledby="h-to">
+      <label><input type="radio" name="fmt" id="fmt-jpg" value="jpg" checked><span>JPG<small>ไฟล์เล็ก</small></span></label>
+      <label><input type="radio" name="fmt" id="fmt-png" value="png"><span>PNG<small>คมชัด พื้นใส</small></span></label>
+      <label><input type="radio" name="fmt" id="fmt-webp" value="webp"><span>WebP<small>เล็กสุด</small></span></label>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-pg" id="pdfOpts" hidden>
+    <h2 id="h-pg">ขนาดหน้าสำหรับรูป</h2>
+    <div class="chips" role="radiogroup" aria-labelledby="h-pg" style="grid-template-columns:1fr 1fr">
+      <label><input type="radio" name="page" id="pg-a4" value="a4" checked><span>A4<small>พร้อมพิมพ์</small></span></label>
+      <label><input type="radio" name="page" id="pg-fit" value="fit"><span>พอดีรูป<small>ไม่มีขอบขาว</small></span></label>
+    </div>
+    <p class="hint">ไฟล์จะเรียงตามลำดับในรายการ ใช้ลูกศรเลื่อนขึ้นลงได้ ใส่ไฟล์ PDF ปนกับรูปได้</p>
+  </section>
+
+  <section>
+    <div class="opts">
+      <div class="opt" id="qWrap">
+        <label for="quality">คุณภาพรูป <output id="qOut" for="quality">85%</output></label>
+        <input type="range" id="quality" min="30" max="100" step="5" value="85">
+      </div>
+      <div class="opt">
+        <label for="maxSide">ขนาดด้านยาวสุดของรูป</label>
+        <select id="maxSide">
+          <option value="0">เท่าต้นฉบับ</option>
+          <option value="2560">2560 px</option>
+          <option value="1920">1920 px</option>
+          <option value="1280">1280 px</option>
+          <option value="800">800 px</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-out" id="outSec" hidden>
+    <h2 id="h-out">ไฟล์ที่แปลงแล้ว</h2>
+    <ul class="list" id="outList"></ul>
+    <button type="button" class="save wide" id="zip" hidden>บันทึกทั้งหมดเป็น ZIP</button>
+    <p class="hint">ถ้าปุ่มบันทึกไม่ทำงาน ให้กดค้างที่รูปแล้วเลือกบันทึกรูปภาพ</p>
+  </section>
+
+  <div class="bar">
+    <div class="prog" id="prog" hidden><i id="progBar"></i></div>
+    <p class="msg" id="msg" role="status"></p>
+    <button type="button" class="go" id="go">แปลงไฟล์</button>
+  </div>
+</div>
+
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var mode = "img";
+  var items = { img: [], pdf: [] };   // {id, file, url, isPdf, sample}
+  var results = [];                   // {name, blob, url, before, pages}
+  var seq = 0, busy = false, downloads = null;
+  var MIME = { jpg: "image/jpeg", png: "image/png", webp: "image/webp" };
+
+  if (window.claude && window.claude.use) {
+    window.claude.use("downloads").then(function (d) { downloads = d; }).catch(function () {});
+  } else if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+
+  function pref(k, v) {
+    try { if (v === undefined) return localStorage.getItem("ss:" + k); localStorage.setItem("ss:" + k, v); } catch (e) {}
+    return null;
+  }
+  function fmtSize(n) {
+    if (n < 1024) return n + " B";
+    if (n < 1048576) return (n / 1024).toFixed(n < 10240 ? 1 : 0) + " KB";
+    return (n / 1048576).toFixed(2) + " MB";
+  }
+  function ext(name) { var m = /\.([a-z0-9]+)$/i.exec(name); return m ? m[1].toLowerCase() : "?"; }
+  function base(name) { return name.replace(/\.[a-z0-9]+$/i, "") || "ไฟล์"; }
+  function say(text, kind) { var m = $("msg"); m.textContent = text || ""; m.className = "msg" + (kind ? " " + kind : ""); }
+  function progress(p) { $("prog").hidden = p == null; if (p != null) $("progBar").style.width = Math.round(p * 100) + "%"; }
+  function picked(name) { return document.querySelector('input[name="' + name + '"]:checked').value; }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function cur() { return items[mode]; }
+  function uniqueName(name, used) {
+    var n = name, i = 2;
+    while (used[n]) n = base(name) + "-" + (i++) + "." + ext(name);
+    used[n] = 1; return n;
+  }
+
+  function renderIn() {
+    var list = $("inList"), arr = cur(); list.textContent = "";
+    arr.forEach(function (f, i) {
+      var li = el("li", "row"), th;
+      if (f.isPdf) th = el("div", "thumb", "PDF");
+      else { th = el("img", "thumb"); th.src = f.url; th.alt = ""; }
+      var meta = el("div", "meta");
+      meta.append(el("div", "name", f.file.name));
+      var sub = el("div", "sub");
+      if (f.sample) sub.append(el("span", "tag eg", "ตัวอย่าง"));
+      sub.append(el("span", "tag", ext(f.file.name)), document.createTextNode(fmtSize(f.file.size)));
+      meta.append(sub);
+      var acts = el("div", "acts");
+      if (mode === "pdf") {
+        [[-1, "↑", "เลื่อนขึ้น"], [1, "↓", "เลื่อนลง"]].forEach(function (d) {
+          var b = el("button", "ic", d[1]); b.type = "button"; b.setAttribute("aria-label", d[2] + " " + f.file.name);
+          b.disabled = i + d[0] < 0 || i + d[0] >= arr.length;
+          b.addEventListener("click", function () { arr.splice(i + d[0], 0, arr.splice(i, 1)[0]); renderIn(); });
+          acts.append(b);
+        });
+      }
+      var x = el("button", "ic", "×"); x.type = "button"; x.setAttribute("aria-label", "เอา " + f.file.name + " ออก");
+      x.addEventListener("click", function () { URL.revokeObjectURL(f.url); arr.splice(i, 1); renderIn(); });
+      acts.append(x);
+      li.append(th, meta, acts); list.append(li);
+    });
+    $("listHead").hidden = arr.length === 0;
+    $("count").textContent = arr.length + " ไฟล์ · " + fmtSize(arr.reduce(function (s, f) { return s + f.file.size; }, 0));
+    var go = $("go"); go.disabled = busy || arr.length === 0;
+    if (!arr.length) go.textContent = mode === "pdf" ? "เลือกรูปหรือ PDF ก่อน" : "เลือกรูปก่อน";
+    else if (mode === "pdf") go.textContent = "รวม " + arr.length + " ไฟล์เป็น PDF";
+    else go.textContent = "แปลง " + arr.length + " ไฟล์เป็น " + picked("fmt").toUpperCase();
+  }
+
+  function addFiles(list) {
+    var ok = Array.prototype.filter.call(list, function (f) {
+      return /^image\//.test(f.type) || (mode === "pdf" && (f.type === "application/pdf" || /\.pdf$/i.test(f.name)));
+    });
+    if (!ok.length) { say(mode === "pdf" ? "เลือกได้เฉพาะรูปหรือไฟล์ PDF" : "ไฟล์ที่เลือกไม่ใช่รูป เลือกไฟล์รูปแทน", "err"); return; }
+    var arr = cur();
+    for (var i = arr.length - 1; i >= 0; i--) if (arr[i].sample) { URL.revokeObjectURL(arr[i].url); arr.splice(i, 1); }
+    ok.forEach(function (file) {
+      var isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+      arr.push({ id: ++seq, file: file, url: isPdf ? "" : URL.createObjectURL(file), isPdf: isPdf, sample: false });
+    });
+    say(""); renderIn();
+  }
+
+  function loadImage(url) {
+    return new Promise(function (res, rej) {
+      var i = new Image();
+      i.onload = function () { res(i); };
+      i.onerror = function () { rej(new Error("open")); };
+      i.src = url;
+    });
+  }
+  async function draw(f, mime, q, maxSide) {
+    var img = await loadImage(f.url);
+    var w = img.naturalWidth || 1024, h = img.naturalHeight || 1024;
+    var scale = maxSide && Math.max(w, h) > maxSide ? maxSide / Math.max(w, h) : 1;
+    var c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(w * scale)); c.height = Math.max(1, Math.round(h * scale));
+    var ctx = c.getContext("2d");
+    if (mime === "image/jpeg") { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, c.width, c.height); }
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    var blob = await new Promise(function (res) { c.toBlob(res, mime, q); });
+    c.width = c.height = 0;
+    if (!blob) throw new Error("encode");
+    return { blob: blob, w: w * scale, h: h * scale };
+  }
+
+  async function runImages(arr, q, maxSide, failed) {
+    var f = picked("fmt"), used = {};
+    for (var j = 0; j < arr.length; j++) {
+      say("กำลังแปลงไฟล์ที่ " + (j + 1) + " จาก " + arr.length); progress(j / arr.length);
+      try {
+        var r = await draw(arr[j], MIME[f], q, maxSide);
+        if (r.blob.type !== MIME[f]) throw new Error("unsupported");
+        results.push({ name: uniqueName(base(arr[j].file.name) + "." + f, used), blob: r.blob, url: URL.createObjectURL(r.blob), before: arr[j].file.size });
+      } catch (e) {
+        if (e.message === "unsupported") throw e;
+        failed.push(arr[j].file.name);
+      }
+    }
+  }
+
+  async function runPdf(arr, q, maxSide, failed) {
+    if (!window.PDFLib) throw new Error("pdflib");
+    var pdf = await PDFLib.PDFDocument.create(), total = 0, fit = picked("page") === "fit";
+    for (var i = 0; i < arr.length; i++) {
+      say("กำลังใส่ไฟล์ที่ " + (i + 1) + " จาก " + arr.length); progress(i / arr.length);
+      try {
+        if (arr[i].isPdf) {
+          var src = await PDFLib.PDFDocument.load(await arr[i].file.arrayBuffer());
+          (await pdf.copyPages(src, src.getPageIndices())).forEach(function (p) { pdf.addPage(p); });
+        } else {
+          var d = await draw(arr[i], "image/jpeg", q, maxSide);
+          var jpg = await pdf.embedJpg(await d.blob.arrayBuffer());
+          var pw, ph;
+          if (fit) { pw = 595.28; ph = pw * d.h / d.w; }
+          else { var land = d.w > d.h; pw = land ? 841.89 : 595.28; ph = land ? 595.28 : 841.89; }
+          var s = Math.min(pw / d.w, ph / d.h), dw = d.w * s, dh = d.h * s;
+          pdf.addPage([pw, ph]).drawImage(jpg, { x: (pw - dw) / 2, y: (ph - dh) / 2, width: dw, height: dh });
+        }
+        total += arr[i].file.size;
+      } catch (e) { failed.push(arr[i].file.name); }
+    }
+    if (pdf.getPageCount()) {
+      var blob = new Blob([await pdf.save()], { type: "application/pdf" });
+      results.push({ name: base(arr[0].file.name) + (arr.length > 1 ? "-merged" : "") + ".pdf", blob: blob, url: null, before: total, pages: pdf.getPageCount() });
+    }
+  }
+
+  async function convert() {
+    var arr = cur();
+    if (busy || !arr.length) return;
+    busy = true; $("go").disabled = true;
+    results.forEach(function (r) { if (r.url) URL.revokeObjectURL(r.url); });
+    results = [];
+    var q = Number($("quality").value) / 100, maxSide = Number($("maxSide").value), failed = [];
+    try {
+      if (mode === "pdf") await runPdf(arr, q, maxSide, failed); else await runImages(arr, q, maxSide, failed);
+      if (failed.length) say("เปิดไม่ได้ " + failed.length + " ไฟล์: " + failed.join(", "), "err");
+      else say("เสร็จแล้ว " + results.length + " ไฟล์ เลื่อนขึ้นไปบันทึกได้เลย", "ok");
+    } catch (e) {
+      results = [];
+      say(e.message === "unsupported" ? "เบราว์เซอร์นี้บันทึกเป็น " + picked("fmt").toUpperCase() + " ไม่ได้ เลือก JPG หรือ PNG แทน"
+        : e.message === "pdflib" ? "โหลดตัวสร้าง PDF ไม่สำเร็จ เปิดหน้านี้ใหม่อีกครั้ง"
+        : "แปลงไม่สำเร็จ ลองลดขนาดด้านยาวสุดแล้วกดอีกครั้ง", "err");
+    }
+    busy = false; progress(null); renderIn(); renderOut();
+    if (results.length) $("outSec").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }
+
+  function renderOut() {
+    var list = $("outList"); list.textContent = "";
+    $("outSec").hidden = results.length === 0;
+    $("zip").hidden = results.length < 2 || !window.JSZip;
+    results.forEach(function (r) {
+      var li = el("li", "row"), th;
+      if (r.url) { th = el("img", "thumb"); th.src = r.url; th.alt = r.name; }
+      else th = el("div", "thumb", "PDF");
+      var meta = el("div", "meta");
+      meta.append(el("div", "name", r.name));
+      var sub = el("div", "sub"), pct = Math.round((r.blob.size - r.before) / r.before * 100);
+      sub.append(document.createTextNode(fmtSize(r.before) + " → " + fmtSize(r.blob.size) + " "));
+      sub.append(el("span", pct <= 0 ? "down" : "up", (pct > 0 ? "+" : "") + pct + "%"));
+      if (r.pages) sub.append(document.createTextNode(" · " + r.pages + " หน้า"));
+      meta.append(sub);
+      var b = el("button", "save", "บันทึก"); b.type = "button";
+      b.addEventListener("click", function () { save(r.name, r.blob); });
+      li.append(th, meta, b); list.append(li);
+    });
+  }
+
+  async function save(name, blob) {
+    if (downloads) {
+      try { await downloads.save({ filename: name, data: blob }); say("บันทึก " + name + " แล้ว", "ok"); }
+      catch (e) {
+        if (e && e.code === "declined") return;
+        say(e && e.code === "rate_limited" ? "มีหน้าต่างบันทึกเปิดค้างอยู่ ปิดก่อนแล้วกดอีกครั้ง" : "บันทึกจากหน้านี้ไม่ได้ ให้กดค้างที่รูปแล้วเลือกบันทึกรูปภาพ", "err");
+      }
+      return;
+    }
+    var a = document.createElement("a"), u = URL.createObjectURL(blob);
+    a.href = u; a.download = name; document.body.append(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(u); }, 30000);
+  }
+
+  async function saveZip() {
+    var zip = new JSZip();
+    results.forEach(function (r) { zip.file(r.name, r.blob); });
+    say("กำลังรวมเป็น ZIP");
+    var blob = await zip.generateAsync({ type: "blob" });
+    say(""); save("salap-sakun-" + results.length + "-files.zip", blob);
+  }
+
+  function makeSample() {
+    var c = document.createElement("canvas"); c.width = 1200; c.height = 800;
+    var x = c.getContext("2d"), g = x.createLinearGradient(0, 0, 1200, 800);
+    g.addColorStop(0, "#1f47d6"); g.addColorStop(1, "#19b3a6");
+    x.fillStyle = g; x.fillRect(0, 0, 1200, 800);
+    for (var i = 0; i < 9; i++) {
+      x.fillStyle = "rgba(255,255,255," + (0.06 + i * 0.02) + ")";
+      x.beginPath(); x.arc(150 + i * 120, 400 + Math.sin(i * 0.9) * 180, 60 + i * 14, 0, Math.PI * 2); x.fill();
+    }
+    c.toBlob(function (b) {
+      if (!b || items.img.length) return;
+      var file = new File([b], "รูปตัวอย่าง.png", { type: "image/png" });
+      items.img.push({ id: ++seq, file: file, url: URL.createObjectURL(file), isPdf: false, sample: true });
+      renderIn();
+    }, "image/png");
+  }
+
+  function setMode(m) {
+    mode = m;
+    $("m-img").setAttribute("aria-selected", m === "img"); $("m-pdf").setAttribute("aria-selected", m === "pdf");
+    $("imgOpts").hidden = m !== "img"; $("pdfOpts").hidden = m !== "pdf";
+    $("picker").accept = m === "pdf" ? "image/*,application/pdf" : "image/*";
+    $("dropTitle").textContent = m === "pdf" ? "เลือกรูปหรือ PDF" : "เลือกรูป";
+    results.forEach(function (r) { if (r.url) URL.revokeObjectURL(r.url); });
+    results = []; renderOut();
+    say(""); sync();
+  }
+  function sync() {
+    $("qWrap").hidden = mode === "img" && picked("fmt") === "png";
+    $("qOut").textContent = $("quality").value + "%";
+    pref("fmt", picked("fmt")); pref("q", $("quality").value);
+    renderIn();
+  }
+
+  var drop = $("drop"), picker = $("picker");
+  drop.addEventListener("click", function () { picker.click(); });
+  picker.addEventListener("change", function () { addFiles(picker.files); picker.value = ""; });
+  ["dragenter", "dragover"].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add("over"); }); });
+  ["dragleave", "drop"].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove("over"); }); });
+  drop.addEventListener("drop", function (e) { if (e.dataTransfer) addFiles(e.dataTransfer.files); });
+  document.addEventListener("paste", function (e) { if (e.clipboardData && e.clipboardData.files.length) addFiles(e.clipboardData.files); });
+  document.querySelectorAll('input[type="radio"]').forEach(function (r) { r.addEventListener("change", sync); });
+  $("quality").addEventListener("input", sync);
+  $("m-img").addEventListener("click", function () { setMode("img"); });
+  $("m-pdf").addEventListener("click", function () { setMode("pdf"); });
+  $("clear").addEventListener("click", function () { cur().forEach(function (f) { if (f.url) URL.revokeObjectURL(f.url); }); cur().length = 0; renderIn(); });
+  $("go").addEventListener("click", convert);
+  $("zip").addEventListener("click", saveZip);
+
+  var pf = pref("fmt"), pq = pref("q");
+  if (pf && $("fmt-" + pf)) $("fmt-" + pf).checked = true;
+  if (pq && Number(pq) >= 30 && Number(pq) <= 100) $("quality").value = pq;
+  sync(); makeSample();
+})();
+</script>
+
+</body>
+</html>
